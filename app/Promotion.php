@@ -4,7 +4,7 @@ namespace App;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Promotions extends Model
+class Promotion extends Model
 {
     protected $fillable = ['title', 'price', 'address', 'latitude', 'longitude'];
 }

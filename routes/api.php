@@ -12,9 +12,10 @@ Route::group(['prefix' => 'auth'], function () {
     });
 });
 
+Route::get('promotions', 'PromotionController@index');
+Route::get('promotions/{promotion}', 'PromotionController@show');
+
 Route::group(['middleware' => 'auth:api'], function() {
-    Route::get('promotions', 'PromotionController@index');
-    Route::get('promotions/{promotion}', 'PromotionController@show');
     Route::post('promotions', 'PromotionController@store');
     Route::put('promotions/{promotion}', 'PromotionController@update');
     Route::delete('promotions/{promotion}', 'PromotionController@delete');

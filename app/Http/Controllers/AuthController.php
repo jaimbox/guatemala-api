@@ -5,9 +5,162 @@ use App\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Resources\User as UserResource;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthController extends Controller
 {
+    /**
+    * @OA\Post(
+    *   path="/api/auth/login",
+    *   summary="Login User",
+    *   operationId="login",
+    *   tags={"Auth"},
+    *
+    *   @OA\Parameter(
+    *       name="email",
+    *       in="query",
+    *       required=true,
+    *       @OA\Schema(
+    *           type="string"
+    *       )
+    *   ),
+    *   @OA\Parameter(
+    *      name="password",
+    *      in="query",
+    *      required=true,
+    *      @OA\Schema(
+    *           type="string"
+    *      )
+    *   ),
+    *   @OA\Response(
+    *      response=202,
+    *       description="Success",
+    *      @OA\MediaType(
+    *           mediaType="application/json",
+    *      )
+    *   ),
+    *   @OA\Response(
+    *       response=401,
+    *       description="Unauthenticated"
+    *   ),
+    *   @OA\Response(
+    *       response=400,
+    *       description="Bad Request"
+    *   ),
+    *   @OA\Response(
+    *       response=404,
+    *       description="not found"
+    *   ),
+    *   @OA\Response(
+    *       response=403,
+    *       description="Forbidden"
+    *   )
+    *)
+    **/
+    /**
+    * Login User api
+    *
+    * @return \Illuminate\Http\Response
+    */
+    public function login(Request $request)
+    {
+        $validator = $request->validate([
+            'email' => 'required|string|email',
+            'password' => 'required',
+        ]);
+
+        if (!auth()->attempt($validator)) {
+            return response()->json(['error' => 'Unauthorised'], 401);
+        } else {
+            $success['token'] = auth()->user()->createToken('authToken')->accessToken;
+            $success['user'] = auth()->user();
+            return response()->json(['success' => $success])->setStatusCode(Response::HTTP_ACCEPTED);
+        }
+
+        $user = $request->user();
+        $tokenResult = $user->createToken('Personal Access Token');
+        $token = $tokenResult->token;
+
+        if ($request->remember_me) {
+            $token->expires_at = Carbon::now()->addWeeks(1);
+        }
+
+        $token->save();
+
+        $success['token'] = auth()->user()->createToken('authToken')->accessToken;
+        $success['user'] = auth()->user();
+
+        return response()->json(['success' => $success])->setStatusCode(Response::HTTP_ACCEPTED);
+    }
+
+    /**
+    * @OA\Post(
+    *   path="/api/auth/signup",
+    *   summary="Register User",
+    *   tags={"Auth"},
+    *   @OA\Parameter(
+    *       name="name",
+    *       in="query",
+    *       required=true,
+    *       @OA\Schema(
+    *           type="string"
+    *       )
+    *   ),
+    *   @OA\Parameter(
+    *       name="email",
+    *       in="query",
+    *       required=true,
+    *       @OA\Schema(
+    *       type="string"
+    *       )
+    *   ),
+    *   @OA\Parameter(
+    *       name="password",
+    *       in="query",
+    *       required=true,
+    *       @OA\Schema(
+    *           type="string"
+    *       )
+    *   ),
+    *   @OA\Parameter(
+    *       name="password_confirmation",
+    *       in="query",
+    *       required=true,
+    *       @OA\Schema(
+    *           type="string"
+    *       )
+    *   ),
+    *   @OA\Response(
+    *       response=201,
+    *       description="Success",
+    *       @OA\MediaType(
+    *           mediaType="application/json",
+    *       )
+    *   ),
+    *   @OA\Response(
+    *       response=401,
+    *       description="Unauthenticated"
+    *   ),
+    *   @OA\Response(
+    *       response=400,
+    *       description="Bad Request"
+    *   ),
+    *   @OA\Response(
+    *       response=404,
+    *       description="not found"
+    *   ),
+    *   @OA\Response(
+    *       response=403,
+    *       description="Forbidden"
+    *   )
+    * )
+    **/
+    /**
+    * Register User api
+    *
+    * @return \Illuminate\Http\Response
+    */
     public function signup(Request $request)
     {
         $request->validate([
@@ -25,34 +178,29 @@ class AuthController extends Controller
             'message' => 'Successfully created user!'], 201);
     }
 
-    public function login(Request $request)
-    {
-        $request->validate([
-            'email'       => 'required|string|email',
-            'password'    => 'required|string',
-            'remember_me' => 'boolean',
-        ]);
-        $credentials = request(['email', 'password']);
-        if (!Auth::attempt($credentials)) {
-            return response()->json([
-                'message' => 'Unauthorized'], 401);
-        }
-        $user = $request->user();
-        $tokenResult = $user->createToken('Personal Access Token');
-        $token = $tokenResult->token;
-        if ($request->remember_me) {
-            $token->expires_at = Carbon::now()->addWeeks(1);
-        }
-        $token->save();
-        return response()->json([
-            'access_token' => $tokenResult->accessToken,
-            'token_type'   => 'Bearer',
-            'expires_at'   => Carbon::parse(
-                $tokenResult->token->expires_at)
-                    ->toDateTimeString(),
-        ], 200);
-    }
-
+    /**
+    * @OA\Get(
+    *   path="/api/auth/logout",
+    *   summary="Logout User",
+    *   tags={"Auth"},
+    *   security={
+    *       {"passport": {}},
+    *   },
+    *   @OA\Response(
+    *       response=200,
+    *       description="Successfully logged out"
+    *   ),
+    *   @OA\Response(
+    *       response=401,
+    *       description="Unauthorized"
+    *   )
+    * )
+    **/
+    /**
+    * Logout User api
+    *
+    * @return \Illuminate\Http\Response
+    */
     public function logout(Request $request)
     {
         $request->user()->token()->revoke();
@@ -60,8 +208,51 @@ class AuthController extends Controller
             'Successfully logged out'], 200);
     }
 
+    /**
+    * @OA\Get(
+    *   path="/api/auth/user",
+    *   summary="Show Current User",
+    *   tags={"Auth"},
+    *   security={
+    *       {"passport": {}},
+    *   },
+    *   @OA\Response(
+    *       response=200,
+    *       description="Success",
+    *       @OA\MediaType(
+    *           mediaType="application/json",
+    *       )
+    *   ),
+    *   @OA\Response(
+    *       response=401,
+    *       description="Unauthenticated"
+    *   ),
+    *   @OA\Response(
+    *       response=400,
+    *       description="Bad Request"
+    *   ),
+    *   @OA\Response(
+    *       response=404,
+    *       description="not found"
+    *   ),
+    *   @OA\Response(
+    *       response=403,
+    *       description="Forbidden"
+    *   )
+    * )
+    **/
+    /**
+    * Show User api
+    *
+    * @return \Illuminate\Http\Response
+    */
     public function user(Request $request)
     {
-        return response()->json($request->user(), 200);
+        return response()->json([
+            'status' => 'success',
+            'status_code' => Response::HTTP_OK,
+            'result' => new UserResource($request->user()),
+            'message' => 'User detail pulled out successfully'
+        ]);
     }
 }

@@ -48,7 +48,7 @@ class PromotionController extends Controller
     */
     public function index()
     {
-        $promotions = Promotion::paginate(10);
+        $promotions = Promotion::paginate(20);
 
         return response()->json([
             'status' => 'success',

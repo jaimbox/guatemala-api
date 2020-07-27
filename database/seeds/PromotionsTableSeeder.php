@@ -15,7 +15,7 @@ class PromotionsTableSeeder extends Seeder
 
         $faker = \Faker\Factory::create('en_EN');
 
-        for ($i = 0; $i < 50; $i++) {
+        for ($i = 0; $i < 150; $i++) {
             Promotion::create([
                 'title' => $faker->sentence(3),
                 'price' => $faker->randomNumber(2),
